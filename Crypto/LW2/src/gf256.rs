@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub fn inverse(x: u8) -> u8 {
     if x == 0u8 {
         return 0u8;
