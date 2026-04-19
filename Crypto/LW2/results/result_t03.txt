@@ -1,0 +1,42 @@
+Custom amount of rounds 23:
+1) Modifying one bit in the text:
+        Calculating...
+        On average 63 bits differ
+2) Modifying one bit in the key:
+        Calculating...
+        On average 64 bits differ
+Custom amount of rounds 5:
+1) Modifying one bit in the text:
+        Calculating...
+        On average 63 bits differ
+2) Modifying one bit in the key:
+        Calculating...
+        On average 64 bits differ
+Custom amount of rounds 6:
+1) Modifying one bit in the text:
+        Calculating...
+        On average 64 bits differ
+2) Modifying one bit in the key:
+        Calculating...
+        On average 64 bits differ
+Custom amount of rounds 7:
+1) Modifying one bit in the text:
+        Calculating...
+        On average 64 bits differ
+2) Modifying one bit in the key:
+        Calculating...
+        On average 64 bits differ
+Custom amount of rounds 8:
+1) Modifying one bit in the text:
+        Calculating...
+        On average 64 bits differ
+2) Modifying one bit in the key:
+        Calculating...
+        On average 64 bits differ
+Custom amount of rounds 9:
+1) Modifying one bit in the text:
+        Calculating...
+        On average 63 bits differ
+2) Modifying one bit in the key:
+        Calculating...
+        On average 63 bits differ

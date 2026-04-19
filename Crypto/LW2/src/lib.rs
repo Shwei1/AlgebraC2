@@ -72,6 +72,30 @@ mod tests {
         let ans: [u8; 16] = hex::decode("a74289fe73a4c123ca189ea1e1b49ad5").unwrap().try_into().unwrap();
         assert_eq!(aes::aes_256(&inp, &key), ans);
     }
+
+    #[test]
+    fn test_decipher_256_1() {
+        let inp: [u8; 16] = hex::decode("00000000000000000000000000000000").unwrap().try_into().unwrap();
+        let key: [u8; 32] = hex::decode("797f8b3d176dac5b7e34a2d539c4ef367a16f8635f6264737591c5c07bf57a3e").unwrap().try_into().unwrap();
+        let encoded: [u8; 16] = aes::aes_256(&inp, &key);
+        assert_eq!(inp, aes::aes_256_dec(&encoded, &key));
+    }
+
+    #[test]
+    fn test_decipher_192_1() {
+        let inp: [u8; 16] = hex::decode("00000000000000000000000000000000").unwrap().try_into().unwrap();
+        let key: [u8; 24] = hex::decode("d2926527e0aa9f37b45e2ec2ade5853ef807576104c7ace3").unwrap().try_into().unwrap();
+        let encoded: [u8; 16] = aes::aes_192(&inp, &key);
+        assert_eq!(inp, aes::aes_192_dec(&encoded, &key));
+    }
+
+    #[test]
+    fn test_decipher_128_1() {
+        let inp: [u8; 16] = hex::decode("6bc1bee22e409f96e93d7e117393172a").unwrap().try_into().unwrap();
+        let key: [u8; 16] = hex::decode("2b7e151628aed2a6abf7158809cf4f3c").unwrap().try_into().unwrap();
+        let encoded: [u8;16] = aes::aes_128(&inp, &key);
+        assert_eq!(inp, aes::aes_128_dec(&encoded, &key));
+    }
 }
 
 

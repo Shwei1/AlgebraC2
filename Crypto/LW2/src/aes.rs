@@ -85,28 +85,34 @@ impl State {
     fn sbox(byte: u8) -> u8 {
         let c = 0b01100011u8;
         let b = gf256::inverse(byte);
-        b
-            ^ (b << 1) ^ (b >> 7)
-            ^ (b << 2) ^ (b >> 6)
-            ^ (b << 3) ^ (b >> 5)
-            ^ (b << 4) ^ (b >> 4)
-            ^ c
-}
-
-// TODO: rewrite all inverse functions
+        let ans = b ^ b.rotate_left(1)
+            ^ b.rotate_left(2)
+            ^ b.rotate_left(3)
+            ^ b.rotate_left(4)
+            ^ c;
+        // println!("sbox({:02x}) = {:02x}", byte, ans);
+        ans
+    }
 
     fn inv_sbox(byte: u8) -> u8 {
         let c = 0b00000101u8;
-        let b = gf256::inverse(byte);
-        b.rotate_left(1) ^ b.rotate_left(3) ^ b.rotate_left(6) ^ c
+        let b = byte;
+        let ans = gf256::inverse(b.rotate_left(1)
+        ^ b.rotate_left(3)
+        ^ b.rotate_left(6)
+        ^ c);
+        // println!("invsbox({:02x}) = {:02x}", byte, ans);
+        ans
     }
 
     fn inv_shift_rows(&mut self) -> &mut Self {
+        let mut new_data = self.data;
         for i in 1..4 {
             for j in 0..4 {
-                self.data[i][j] = self.data[i][(j + 4 - i) % 4];
+                new_data[i][j] = self.data[i][(j + 4 - i) % 4];
             }
         }
+        self.data = new_data;
         self
     }
 
@@ -125,7 +131,7 @@ impl State {
             *self.get_mut(0, c) = gf256::mul(a[0], s0c) ^ gf256::mul(a[3], s1c) ^ gf256::mul(a[2], s2c) ^ gf256::mul(a[1], s3c);
             *self.get_mut(1, c) = gf256::mul(a[1], s0c) ^ gf256::mul(a[0], s1c) ^ gf256::mul(a[3], s2c) ^ gf256::mul(a[2], s3c);
             *self.get_mut(2, c) = gf256::mul(a[2], s0c) ^ gf256::mul(a[1], s1c) ^ gf256::mul(a[0], s2c) ^ gf256::mul(a[3], s3c);
-            *self.get_mut(3, c) = gf256::mul(a[3], s0c) ^ gf256::mul(a[2], s1c) ^ gf256::mul(a[3], s2c) ^ gf256::mul(a[0], s3c);
+            *self.get_mut(3, c) = gf256::mul(a[3], s0c) ^ gf256::mul(a[2], s1c) ^ gf256::mul(a[1], s2c) ^ gf256::mul(a[0], s3c);
         }
         self
     }
@@ -184,6 +190,12 @@ pub fn aes_128(in_: &[u8; 16], key: &[u8; 16]) -> [u8; 16] {
     res
 }
 
+pub fn aes_128_custom(in_: &[u8; 16], key: &[u8; 16], nr: usize) -> [u8; 16] {
+    let k = key_expansion_custom(key, nr);
+    let res = cipher(in_, nr as u32, &k);
+    res
+}
+
 pub fn aes_192(in_: &[u8; 16], key: &[u8; 24]) -> [u8; 16] {
     let k = key_expansion(key);
     let res = cipher(in_, 12, &k);
@@ -195,6 +207,27 @@ pub fn aes_256(in_: &[u8; 16], key: &[u8; 32]) -> [u8; 16] {
     let res = cipher(in_, 14, &k);
     res
 }
+
+
+pub fn aes_128_dec(in_: &[u8; 16], key: &[u8; 16]) -> [u8; 16] {
+    let k = key_expansion(key);
+    let res = inv_cipher(in_, 10, &k);
+    res
+}
+
+
+pub fn aes_192_dec(in_: &[u8; 16], key: &[u8; 24]) -> [u8; 16] {
+    let k = key_expansion(key);
+    let res = inv_cipher(in_, 12, &k);
+    res
+}
+
+pub fn aes_256_dec(in_: &[u8; 16], key: &[u8; 32]) -> [u8; 16] {
+    let k = key_expansion(key);
+    let res = inv_cipher(in_, 14, &k);
+    res
+}
+
 
 fn cipher(in_: &[u8; 16], nr: u32, w: &[u8]) -> [u8; 16] {
    let mut s = State::from(in_);
@@ -215,7 +248,7 @@ fn cipher(in_: &[u8; 16], nr: u32, w: &[u8]) -> [u8; 16] {
 fn inv_cipher(in_: &[u8; 16], nr: u32, w: &[u8]) -> [u8; 16] {
     let mut s = State::from(in_);
     s.add_round_key(&w[16*nr as usize..16*(nr as usize+1)]);
-    for round in (nr-1) as usize..1 {
+    for round in (1..nr as usize).rev() {
         s.inv_shift_rows()
             .inv_sub_bytes()
             .add_round_key(&w[16*round..16*(round+1)])
@@ -225,4 +258,39 @@ fn inv_cipher(in_: &[u8; 16], nr: u32, w: &[u8]) -> [u8; 16] {
         .inv_sub_bytes()
         .add_round_key(&w[0..16]);
     s.into()
+}
+
+fn key_expansion_custom(key: &[u8], nr: usize) -> Vec<u8> {
+    fn xor(a: &[u8; 4], b: &[u8; 4]) -> [u8; 4] {
+        std::array::from_fn(|i| a[i] ^ b[i])
+    }
+    fn build_rcon(nr: usize) -> Vec<[u8; 4]> {
+        let mut rcon = vec![[0u8; 4]; nr];
+        let mut x = 1u8;
+
+        for i in 0..nr {
+            rcon[i][0] = x;
+            x = gf256::mul(x, 0x02);
+        }
+    rcon
+    }
+    let nk = key.len() / 4;
+    let rcon = build_rcon(nr);
+    let mut i = 0usize;
+    let mut w: Vec<[u8; 4]> = vec![[0u8; 4]; (nr+1)*4];
+    while i <= nk-1 {
+        w[i] = key[4*i..4*i+4].try_into().unwrap();
+        i += 1;
+    }
+    while i <= 4*nr+3 {
+        let mut temp = w[i-1];
+        if i % nk == 0 {
+            temp = xor(&sub_word(&rot_word(&temp)), &rcon[i / nk - 1]);
+        } else if nk > 6 && i % nk == 4 {
+            temp = sub_word(&temp);
+        }
+        w[i] = xor(&w[i-nk], &temp);
+        i += 1;
+    }
+    w.into_iter().flatten().collect()
 }

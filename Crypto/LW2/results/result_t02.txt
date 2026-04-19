@@ -1,0 +1,21 @@
+AES-128:
+1) Modifying one bit in the text:
+	Calculating...
+	On average 64 bits differ
+2) Modifying one bit in the key:
+	Calculating...
+	On average 63 bits differ
+AES-192:
+1) Modifying one bit in the text:
+	Calculating...
+	On average 64 bits differ
+2) Modifying one bit in the key:
+	Calculating...
+	On average 64 bits differ
+AES-256:
+1) Modifying one bit in the text:
+	Calculating...
+	On average 64 bits differ
+2) Modifying one bit in the key:
+	Calculating...
+	On average 63 bits differ
