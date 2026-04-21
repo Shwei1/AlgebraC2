@@ -1,6 +1,4 @@
-mod sha256;
-
-use sha256::sha256_str;
+use LW3::sha256;
 
 fn main() {
     let p1 = "Щастям б'єш жук їх глицю в фон й ґедзь пріч.";
@@ -46,9 +44,9 @@ fn main() {
 
     for i in 0..10 {
         println!("{}. {}", i+1, p[i]);
-        println!("SHA256(-)={}", sha256_str(p[i]));
+        println!("SHA256(-)={}", sha256::sha256_str(p[i]));
         println!("Зміна: {}", pcc[i]);
-        println!("SHA256(-)={}", sha256_str(pc[i]));
+        println!("SHA256(-)={}", sha256::sha256_str(pc[i]));
         println!();
     }
  

@@ -94,7 +94,7 @@ pub fn sha256(input: &[u8]) -> [u8; 32] {
 
 pub fn sha256_str(s: &str) -> String {
     let data = s.as_bytes();
-    let hash = sha256(&data);
+    let hash = sha256(data);
     let mut hex = String::with_capacity(64);
     for b in hash {
         write!(hex, "{:02x}", b).unwrap();
