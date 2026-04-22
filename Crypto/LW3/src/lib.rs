@@ -41,4 +41,11 @@ mod tests {
         let ans = "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0";
         assert_eq!(ans, sha256::sha256_str(&inp));
     }
+
+    #[test]
+    fn test_6() {
+        let inp = "hello world";
+        let ans = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
+        assert_eq!(ans, sha256::sha256_str(inp));
+    }
 }

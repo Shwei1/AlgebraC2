@@ -1,5 +1,9 @@
 use LW3::sha256;
 
+fn hamming_distance(a: &str, b: &str) -> usize {
+    a.chars().zip(b.chars()).map(|(a, b)| (a != b) as usize).sum()
+}
+
 fn main() {
     let p1 = "Щастям б'єш жук їх глицю в фон й ґедзь пріч.";
     let p2 = "Факт ґринджол: бій псюг вщух, з'їм шче яєць.";
@@ -44,9 +48,12 @@ fn main() {
 
     for i in 0..10 {
         println!("{}. {}", i+1, p[i]);
-        println!("SHA256(-)={}", sha256::sha256_str(p[i]));
+        let orig = sha256::sha256_str(p[i]);
+        println!("SHA256(-)={}", orig);
         println!("Зміна: {}", pcc[i]);
-        println!("SHA256(-)={}", sha256::sha256_str(pc[i]));
+        let changed = sha256::sha256_str(pc[i]);
+        println!("SHA256(-)={}", changed);
+        println!("Hamming distance is {}", hamming_distance(&orig, &changed));
         println!();
     }
  
