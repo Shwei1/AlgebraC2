@@ -1,5 +1,8 @@
-use crypto_bigint::U512;
+use crypto_bigint::{U512, Limb};
 use crate::utils::pow_mod;
+use hex::*;
+
+pub mod oaep;
 
 #[derive(Debug)]
 pub struct PublicKey {
@@ -7,12 +10,14 @@ pub struct PublicKey {
     pub e: U512,
 }
 
+
 #[derive(Debug)]
 pub enum PrivateKey {
     Pair { n: U512, d: U512},
     #[allow(non_snake_case)]
     Quintuple { p: U512, q: U512, dP: U512, dQ: U512, qInv: U512, rdt: Vec<(U512, U512, U512)>},
 }
+
 
 #[allow(non_snake_case)]
 pub fn RSAEP(key: &PublicKey, m: U512) -> Result<U512, &'static str> {
@@ -28,14 +33,19 @@ pub fn RSAEP(key: &PublicKey, m: U512) -> Result<U512, &'static str> {
 
 #[allow(non_snake_case)]
 pub fn I2OSP(x: U512, _xLen: usize) -> String {
-    todo!()
-
+    let bytes: Vec<u8> = Limb::array_as_words(x.as_limbs())
+        .into_iter()
+        .flat_map(|word| word.to_be_bytes())
+        .collect();
+        return hex::encode(&bytes);
 }
 
 
 #[allow(non_snake_case)]
 pub fn OS2IP(x: &str) -> U512 {
-    todo!()
+    let res: [u8; 64] = hex::decode(x).unwrap().try_into().unwrap();
+    let res: [u64; 8] = unsafe { std::mem::transmute(res) };
+    U512::from(res)
 }
 
 

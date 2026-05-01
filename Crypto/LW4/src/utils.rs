@@ -94,3 +94,9 @@ pub fn miller_rabin_test_stats(n: U512) -> f64 {
     }
     counted_as_prime / 100f64
 }
+
+
+pub fn mgf1(Z: &str, l: U512) -> Result<String, &'static str> {
+
+    Ok(String::from(""))
+}
