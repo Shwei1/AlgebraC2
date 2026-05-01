@@ -1,4 +1,4 @@
-use LW3::sha256;
+use lw3::sha256;
 use rand::Rng;
 
 use std::time::Instant;

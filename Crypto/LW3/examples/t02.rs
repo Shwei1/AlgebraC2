@@ -1,4 +1,4 @@
-use LW3::sha256;
+use lw3::sha256;
 
 fn hamming_distance(a: &str, b: &str) -> usize {
     a.chars().zip(b.chars()).map(|(a, b)| (a != b) as usize).sum()
