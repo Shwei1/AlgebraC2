@@ -17,7 +17,7 @@ impl PartialEq for TestResult {
 }
 
 
-fn pow_mod(base: U512, mut exp: U512, modulus: U512) -> U512 {
+pub fn pow_mod(base: U512, mut exp: U512, modulus: U512) -> U512 {
     let mut result = U512::ONE;
     let u512_2: NonZero<U512> = NonZero::new(U512::ONE.saturating_add(&U512::ONE)).unwrap();
     let modulus_nz = NonZero::new(modulus).unwrap();
