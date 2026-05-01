@@ -55,40 +55,30 @@ pub fn miller_rabin_test(n: U512) -> TestResult {
 
     let modulus = n.saturating_sub(&U512::ONE);
 
-    let n_minus_one = NonZero::new(modulus).unwrap(); /* n-1 */
-
     let modulus_nz = NonZero::new(modulus).unwrap(); /* n-1 */
-
 
     let a = U512::random_mod_vartime(&mut rand::rng(), &modulus_nz); /* a in [0, n-2]*/
     let a = a.saturating_add(&U512::ONE); /* shift: a in [1, n-1] */
 
-    let mut powers: Vec<U512> = Vec::new();
-    
-    let mut i = 0usize;
+
     let mut d = n.saturating_sub(&U512::ONE);
-
-    
-    while i == 0 || d.div_rem(&u512_2).1 != U512::ONE {
-        d = d.wrapping_div(&u512_2);
-        
+ 
+    d = d.wrapping_div(&u512_2);
+    while d.div_rem(&u512_2).1 != U512::ONE {
+         
         let ad = pow_mod(a, d, n);
-        powers.push(ad);
-        
-        i += 1;
-    }
 
-    if *powers.last().unwrap() == U512::ONE {
-        return TestResult::MaybePrime(a);
-    } else {
-        for val in &powers {
-            if *val == *n_minus_one {
-                return TestResult::MaybePrime(a);
-            }
+        if ad == modulus {
+            return TestResult::MaybePrime(a);
         }
+        
+        d = d.wrapping_div(&u512_2);
     }
-
-    //println!("a = {:?}, powers = {:?}, d = {:?}", a, powers, d);
+    
+    let ad = pow_mod(a, d, n);
+    if ad == U512::ONE || ad == modulus {
+        return TestResult::MaybePrime(a);
+    }
 
     TestResult::NonPrime
 }
