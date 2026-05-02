@@ -1,6 +1,5 @@
 use crypto_bigint::{U512, Limb};
 use crate::utils::pow_mod;
-use hex::*;
 
 pub mod oaep;
 
@@ -14,13 +13,38 @@ pub struct PublicKey {
 #[derive(Debug)]
 pub enum PrivateKey {
     Pair { n: U512, d: U512},
-    #[allow(non_snake_case)]
-    Quintuple { p: U512, q: U512, dP: U512, dQ: U512, qInv: U512, rdt: Vec<(U512, U512, U512)>},
+    Quintuple { p: U512, q: U512, dp: U512, dq: U512, q_inv: U512, rdt: Vec<(U512, U512, U512)>},
 }
 
 
-#[allow(non_snake_case)]
-pub fn RSAEP(key: &PublicKey, m: U512) -> Result<U512, &'static str> {
+pub fn i2osp(x: U512, x_len: usize) -> Result<Vec<u8>, &'static str> {
+    let mut words = Limb::array_as_words(x.as_limbs()).to_vec();
+    words.reverse(); 
+    let bytes: [u8; 64] = words
+        .into_iter()
+        .flat_map(|word| word.to_be_bytes())
+        .collect::<Vec<u8>>()
+        .try_into()
+        .expect("Wrong data length");
+    if x_len > 64 {
+        return Err("Wrong requested size");
+    }
+
+    Ok(bytes[64-x_len..].to_vec())
+}
+
+
+pub fn os2ip(x: &[u8]) -> U512 {
+    let res: [u8; 64] = x.try_into().unwrap();
+    let mut limbs: [u64; 8] = core::array::from_fn(|i| {
+        u64::from_be_bytes(res[i*8..(i+1)*8].try_into().unwrap())
+    });
+    limbs.reverse();
+    U512::from(limbs)
+}
+
+
+pub fn rsaep(key: &PublicKey, m: U512) -> Result<U512, &'static str> {
    let n = key.n;
    let e = key.e;
    if m >= n {
@@ -32,28 +56,10 @@ pub fn RSAEP(key: &PublicKey, m: U512) -> Result<U512, &'static str> {
 
 
 #[allow(non_snake_case)]
-pub fn I2OSP(x: U512, _xLen: usize) -> String {
-    let bytes: Vec<u8> = Limb::array_as_words(x.as_limbs())
-        .into_iter()
-        .flat_map(|word| word.to_be_bytes())
-        .collect();
-        return hex::encode(&bytes);
-}
-
-
-#[allow(non_snake_case)]
-pub fn OS2IP(x: &str) -> U512 {
-    let res: [u8; 64] = hex::decode(x).unwrap().try_into().unwrap();
-    let res: [u64; 8] = unsafe { std::mem::transmute(res) };
-    U512::from(res)
-}
-
-
-#[allow(non_snake_case)]
-pub fn RSADP(K: &PrivateKey, c: U512) -> Result<U512, &'static str> {
-    let n: U512 = match K {
+pub fn rsadp(key: &PrivateKey, c: U512) -> Result<U512, &'static str> {
+    let n: U512 = match key {
         PrivateKey::Pair{n, d: _} => *n,
-        PrivateKey::Quintuple{p, q, dP: _, dQ: _, qInv: _, ref rdt} => {
+        PrivateKey::Quintuple{p, q, dp: _, dq: _, q_inv: _, ref rdt} => {
             *p * *q * rdt.iter().fold(U512::ONE, |acc, x| acc * x.1)
         }
     };
@@ -61,14 +67,14 @@ pub fn RSADP(K: &PrivateKey, c: U512) -> Result<U512, &'static str> {
         return Err("Ciphertext representative out of range");
     }
      
-    match K {
+    match key {
         PrivateKey::Pair{n, d} => {
             Ok(pow_mod(c, *d, *n))
         },
-        PrivateKey::Quintuple{ p, q, dP, dQ, qInv, ref rdt } => {
+        PrivateKey::Quintuple{ p, q, dp, dq, q_inv, ref rdt } => {
             let u = rdt.len();
-            let m_1 = pow_mod(c, *dP, *p);
-            let m_2 = pow_mod(c, *dQ, *q);
+            let m_1 = pow_mod(c, *dp, *p);
+            let m_2 = pow_mod(c, *dq, *q);
 
             let mut M: Vec<U512> = Vec::with_capacity(u);
             if !rdt.is_empty() {
@@ -77,7 +83,7 @@ pub fn RSADP(K: &PrivateKey, c: U512) -> Result<U512, &'static str> {
                 } 
             }
             
-            let h = m_1.sub_mod(&m_2, &p.to_nz().unwrap()).mul_mod(&qInv, &p.to_nz().unwrap());
+            let h = m_1.sub_mod(&m_2, &p.to_nz().unwrap()).mul_mod(&q_inv, &p.to_nz().unwrap());
             let mut m = m_2 + q * h; 
 
             if !rdt.is_empty() {
@@ -99,10 +105,10 @@ pub fn RSADP(K: &PrivateKey, c: U512) -> Result<U512, &'static str> {
 
 
 #[allow(non_snake_case)]
-pub fn RSASP1(K: &PrivateKey, m: U512) -> Result<U512, &'static str> {
-    let n: U512 = match K {
+pub fn rsasp1(key: &PrivateKey, m: U512) -> Result<U512, &'static str> {
+    let n: U512 = match key {
         PrivateKey::Pair{n, d: _} => *n,
-        PrivateKey::Quintuple{p, q, dP: _, dQ: _, qInv: _, ref rdt} => {
+        PrivateKey::Quintuple{p, q, dp: _, dq: _, q_inv: _, ref rdt} => {
             *p + *q + rdt.iter().fold(U512::ZERO, |acc, x| acc + x.1)
         }
     };
@@ -110,14 +116,14 @@ pub fn RSASP1(K: &PrivateKey, m: U512) -> Result<U512, &'static str> {
         return Err("Message representative out of range");
     }
      
-    match K {
+    match key {
         PrivateKey::Pair{n, d} => {
             Ok(pow_mod(m, *d, *n))
         },
-        PrivateKey::Quintuple{ p, q, dP, dQ, qInv, ref rdt } => {
+        PrivateKey::Quintuple{ p, q, dp, dq, q_inv, ref rdt } => {
             let u = rdt.len();
-            let s_1 = pow_mod(m, *dP, *p);
-            let s_2 = pow_mod(m, *dQ, *q);
+            let s_1 = pow_mod(m, *dp, *p);
+            let s_2 = pow_mod(m, *dq, *q);
 
             let mut M: Vec<U512> = Vec::with_capacity(u);
             if !rdt.is_empty() {
@@ -126,7 +132,7 @@ pub fn RSASP1(K: &PrivateKey, m: U512) -> Result<U512, &'static str> {
                 } 
             }
             
-            let h = s_1.sub_mod(&s_2, &p.to_nz().unwrap()).mul_mod(&qInv, &p.to_nz().unwrap());
+            let h = s_1.sub_mod(&s_2, &p.to_nz().unwrap()).mul_mod(&q_inv, &p.to_nz().unwrap());
             let mut s = s_2 + q * h; 
 
             if !rdt.is_empty() {
@@ -147,8 +153,7 @@ pub fn RSASP1(K: &PrivateKey, m: U512) -> Result<U512, &'static str> {
 }
 
 
-#[allow(non_snake_case)]
-pub fn RSAVP1(key: &PublicKey, s: U512) -> Result<U512, &'static str> {
+pub fn rsavp1(key: &PublicKey, s: U512) -> Result<U512, &'static str> {
    let n = key.n;
    let e = key.e;
    if s >= n {

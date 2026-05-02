@@ -104,6 +104,7 @@ pub fn sha256_str(s: &str) -> String {
 
 
 pub mod insecure {
+    use std::fmt::Write;
     
     pub fn sha1(input: &[u8]) -> [u8; 20] {
 
@@ -126,7 +127,7 @@ pub mod insecure {
         data.extend_from_slice(&bits_data_len.to_be_bytes());
 
         for chunk in data.chunks_exact(64) {
-            let mut w = [0u32; 64];
+            let mut w = [0u32; 80];
             for (i, chunk) in chunk.chunks_exact(4).enumerate() {
                 w[i] = u32::from_be_bytes(chunk.try_into().unwrap());
             }
@@ -144,7 +145,7 @@ pub mod insecure {
             
             for i in 0..80 {
                 if i <= 19 {
-                    f = (b & a) | ((!b) & d);
+                    f = (b & c) | ((!b) & d);
                     k = 0x5A827999;
                 } else if 20 <= i && i <= 39 {
                     f = b ^ c ^ d;
@@ -157,7 +158,11 @@ pub mod insecure {
                     k = 0xCA62C1D6;
                 }
 
-                let temp = a.rotate_left(5) + f + e + k + w[i];
+                let temp = a.rotate_left(5)
+                    .wrapping_add(f)
+                    .wrapping_add(e)
+                    .wrapping_add(k)
+                    .wrapping_add(w[i]);
                 e = d;
                 d = c;
                 c = b.rotate_left(30);
@@ -179,5 +184,15 @@ pub mod insecure {
         }
 
         result
+    }
+
+    pub fn sha1_str(s: &str) -> String {
+        let data = s.as_bytes();
+        let hash = sha1(data);
+        let mut hex = String::with_capacity(64);
+        for b in hash {
+            write!(hex, "{:02x}", b).unwrap();
+        }
+        hex
     }
 }

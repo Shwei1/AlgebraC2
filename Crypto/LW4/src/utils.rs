@@ -1,4 +1,6 @@
 use crypto_bigint::{U512, U1024, RandomMod, NonZero};
+use crate::rsa;
+use lw3::sha256::insecure::sha1;
 
 #[derive(Debug)]
 pub enum TestResult {
@@ -96,7 +98,20 @@ pub fn miller_rabin_test_stats(n: U512) -> f64 {
 }
 
 
-pub fn mgf1(Z: &str, l: U512) -> Result<String, &'static str> {
+#[allow(non_snake_case)]
+pub fn mgf1(z: &[u8], l: u64) -> Result<Vec<u8>, &'static str> {
+    let h_len = 20u64;
+    if l > (h_len << 32) {
+        return Err("Mask too long");
+    }
+    let mut t = Vec::new();
+    
+    let mut i: u64 = 0;
+    while t.len() < l as usize {
+        let c = rsa::i2osp(U512::from(i), 4).unwrap();
+        t.extend_from_slice(&sha1(&[z, &c].concat()));
+        i += 1;
+    }
 
-    Ok(String::from(""))
+    Ok(t[..l as usize].to_vec())
 }
