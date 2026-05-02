@@ -33,7 +33,7 @@ fn prime_37() {
 #[test]
 fn carmichael_1729() {
     let inp = U512::from(1729u64);
-    let res = miller_rabin_test_stats(inp);
+    let res = miller_rabin_test_stats(inp, 100);
     println!("P(1729 is prime) = {}", res);
     assert!(res < 0.25);
 }
@@ -42,7 +42,7 @@ fn carmichael_1729() {
 #[test]
 fn carmichael_561() {
     let inp = U512::from(561u64);
-    let res = miller_rabin_test_stats(inp);
+    let res = miller_rabin_test_stats(inp, 100);
     println!("P(561 is prime) = {}", res);
     assert!(res < 0.25);
 }
@@ -51,7 +51,7 @@ fn carmichael_561() {
 #[test]
 fn carmichael_1105() {
     let inp = U512::from(1105u64);
-    let res = miller_rabin_test_stats(inp);
+    let res = miller_rabin_test_stats(inp, 100);
     println!("P(1105 is prime) = {}", res);
     assert!(res < 0.25);
 }
@@ -59,7 +59,7 @@ fn carmichael_1105() {
 #[test]
 fn carmichael_8911() {
     let inp = U512::from(8911u64);
-    let res = miller_rabin_test_stats(inp);
+    let res = miller_rabin_test_stats(inp, 100);
     println!("P(8911 is prime) = {}", res);
     assert!(res < 0.25);
 }
@@ -67,7 +67,7 @@ fn carmichael_8911() {
 #[test]
 fn test_miller_rabin_prime_1() {
     let inp = U512::from(7919u64);
-    let res = miller_rabin_test_stats(inp);
+    let res = miller_rabin_test_stats(inp, 100);
     assert_eq!(res, 1f64);
 }
 
@@ -76,7 +76,7 @@ fn mersenne_127() {
     let u512_2 = U512::ONE + U512::ONE;
     let inp = u512_2.saturating_pow(&U512::from(127u64))
         .saturating_sub(&U512::ONE);
-    let res = miller_rabin_test_stats(inp);
+    let res = miller_rabin_test_stats(inp, 100);
     assert_eq!(res, 1f64);
 }
 
