@@ -1,4 +1,5 @@
 use lw4::rsa::*;
+use lw4::utils::*;
 use oaep::*;
 use crypto_bigint::U512;
 
@@ -65,6 +66,31 @@ fn test_oaep_roundtrip_3() {
     let c = rsaes_oaep_encrypt(&public_key, m, None).unwrap();
     let m2 = rsaes_oaep_decrypt(&private_key, &c, None).unwrap();
 
+
+    assert_eq!(m, m2.as_slice());
+}
+
+#[test]
+fn test_keygen_roundtrip_1() {
+    let (public_key, (private_key, _)) = keygen();
+
+    let m = b"oranges";
+
+    let c = rsaes_oaep_encrypt(&public_key, m, None).unwrap();
+    let m2 = rsaes_oaep_decrypt(&private_key, &c, None).unwrap();
+
+    assert_eq!(m, m2.as_slice());
+}
+
+
+#[test]
+fn test_keygen_roundtrip_2() {
+    let (public_key, (_, private_key)) = keygen();
+
+    let m = b"oranges";
+
+    let c = rsaes_oaep_encrypt(&public_key, m, None).unwrap();
+    let m2 = rsaes_oaep_decrypt(&private_key, &c, None).unwrap();
 
     assert_eq!(m, m2.as_slice());
 }

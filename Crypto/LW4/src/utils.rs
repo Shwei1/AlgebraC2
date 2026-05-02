@@ -1,4 +1,4 @@
-use crypto_bigint::{U512, U1024, RandomMod, NonZero};
+use crypto_bigint::{U256, U512, U1024, Random, RandomMod, NonZero};
 use crate::rsa;
 use lw3::sha256::insecure::sha1;
 
@@ -86,19 +86,18 @@ pub fn miller_rabin_test(n: U512) -> TestResult {
 }
 
 
-pub fn miller_rabin_test_stats(n: U512) -> f64 {
+pub fn miller_rabin_test_stats(n: U512, k: u32) -> f64 {
     let mut counted_as_prime = 0f64; 
-    for _ in 0..100 {
+    for _ in 0..k {
         match miller_rabin_test(n) {
             TestResult::MaybePrime(_) => counted_as_prime += 1f64,
             TestResult::NonPrime => {},
         }
     }
-    counted_as_prime / 100f64
+    counted_as_prime / k as f64
 }
 
 
-#[allow(non_snake_case)]
 pub fn mgf1(z: &[u8], l: u64) -> Result<Vec<u8>, &'static str> {
     let h_len = 20u64;
     if l > (h_len << 32) {
@@ -114,4 +113,63 @@ pub fn mgf1(z: &[u8], l: u64) -> Result<Vec<u8>, &'static str> {
     }
 
     Ok(t[..l as usize].to_vec())
+}
+
+
+fn generate_prime() -> U512 {
+    const SMALL_PRIMES: [u64; 12] = [3,5,7,11,13,17,19,23,29,31,37,41];
+
+    'outer: loop {
+       let mut n = U256::random();
+       n |= U256::ONE.shl(255);
+       n |= U256::ONE;
+
+        for p in SMALL_PRIMES {
+            if n.rem(&U256::from(p).to_nz().unwrap()) == U256::ZERO {
+                continue 'outer;
+            }
+        }
+
+        let mut limbs = [0u64; 8];
+
+        limbs[..4].copy_from_slice(&n.to_words());
+
+        let n = U512::from_words(limbs);
+
+        if miller_rabin_test_stats(n, 8) > 0.9 {
+            return n;
+        }
+   } 
+}
+
+
+pub fn keygen() -> (rsa::PublicKey, (rsa::PrivateKey, rsa::PrivateKey)) {
+    let p = generate_prime();
+    let mut q = generate_prime();
+
+    while p == q {
+        q = generate_prime();
+    }
+
+    let e = U512::from(65537u32);
+
+    let n = p * q;
+
+    let p1 = p - U512::ONE;
+    let p2 = q - U512::ONE;
+
+    let gcd = p1.gcd(&p2);
+    let lambda = (p1 * p2)/gcd;
+
+    assert!(e.gcd(&lambda) == U512::ONE);
+
+    let d = e.invert_mod(&lambda.to_nz().unwrap()).unwrap();
+
+    let dp = d.rem(&p1.to_nz().unwrap());
+    let dq = d.rem(&p2.to_nz().unwrap());
+    let q_inv = q.invert_mod(&p.to_nz().unwrap()).unwrap();
+
+    (rsa::PublicKey { n, e },
+     (rsa::PrivateKey::Pair { n, d },
+      rsa::PrivateKey::Quintuple { p, q, dp, dq, q_inv, rdt: Vec::new()} ))
 }
